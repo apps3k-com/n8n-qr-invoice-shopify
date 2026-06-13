@@ -11,73 +11,39 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git commit*)",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
+            "timeout": 10,
+            "statusMessage": "Validating branch name..."
+          },
+          {
+            "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/commit-guard.sh\"",
             "timeout": 10,
             "statusMessage": "Checking branch protection..."
           },
           {
             "type": "command",
-            "if": "Bash(git checkout -b*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Validating branch name..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git switch -c*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Validating branch name..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git checkout -B*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Validating branch name..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git switch -C*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Validating branch name..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git branch *)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/branch-name-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Validating branch name..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git push*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/push-guard.sh\"",
-            "timeout": 10,
-            "statusMessage": "Checking push target..."
-          },
-          {
-            "type": "command",
-            "if": "Bash(git merge*)",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/merge-guard.sh\"",
             "timeout": 10,
             "statusMessage": "Checking merge target..."
           },
           {
             "type": "command",
-            "if": "Bash(gh pr merge*)",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pr-merge-guard.sh\"",
             "timeout": 10,
             "statusMessage": "PR merge is owner-only..."
           },
           {
             "type": "command",
-            "if": "Bash(gh pr create*)",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pr-validate.sh\"",
             "timeout": 10,
             "statusMessage": "Validating PR requirements..."
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/push-guard.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking push target..."
           }
         ]
       }

@@ -31,7 +31,17 @@ REST=$(printf '%s' "$CMD" \
   | sed -E 's/(^|[[:space:]])(--[A-Za-z][A-Za-z-]*(=[^[:space:]]+)?|-[A-Za-z]+)//g')
 # shellcheck disable=SC2086
 set -- $REST
-if [ "$#" -gt 0 ]; then shift; fi   # drop the remote; "$@" now holds refspecs only
+# Drop the leading REMOTE only when the first token actually IS one (a configured
+# remote name or a URL). Otherwise the first token is already a refspec — e.g.
+# `git push HEAD:main` / `git push origin-less-refspec` — and must be inspected,
+# not silently shifted away (which would bypass the protected-branch check).
+if [ "$#" -gt 0 ]; then
+  first="$1"
+  if git remote 2>/dev/null | grep -Fxq -- "$first" \
+     || printf '%s' "$first" | grep -qE '^([a-z][a-z0-9+.-]*://|[^@[:space:]]+@[^:[:space:]]+:)'; then
+    shift   # "$@" now holds refspecs only
+  fi
+fi
 
 for ref in "$@"; do
   case "$ref" in

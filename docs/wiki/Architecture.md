@@ -185,6 +185,14 @@ Order Processing Pipeline
 
 ## 5. Project Management
 
+> **HISTORICAL — superseded by the root `AGENTS.md` (and `Conventions`).**
+> Everything in this section (Linear project/issues, the *Issue Workflow* and the
+> *Git Worktree Workflow*, and the "NEVER work on main" rules below) reflects the
+> **old** Linear + dev/worktree process. The current workflow is **main-only**:
+> short-lived `feature/<scope>` off `main` → PR to `main`; tracking is **plane.so**
+> (not Linear); the owner merges. The text below is kept only for historical
+> traceability of the original build.
+
 ### Linear Project
 
 **Project:** Shopify to QR Invoice  

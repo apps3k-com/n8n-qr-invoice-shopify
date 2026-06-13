@@ -44,6 +44,8 @@ check push-guard.sh 2 "git --no-pager push origin $PB"    "push protected behind
 check push-guard.sh 0 "git --help push"                   "git --help push is informational, not a push (no false block)"
 check push-guard.sh 2 "(git -c k=v push origin $PB)"      "push protected inside a subshell"
 check push-guard.sh 2 " git push origin $PB"              "push protected with leading whitespace"
+check push-guard.sh 2 "git push HEAD:$PB"                 "refspec-first (no remote) to protected — first token must not be shifted away (critical fix)"
+check push-guard.sh 0 "git push HEAD:other-branch"        "refspec-first to a non-protected branch (allowed)"
 
 # merge-guard (2 = blocked while on the protected branch)
 check merge-guard.sh 2 "git merge feature"                "merge on protected"
@@ -65,6 +67,8 @@ check branch-name-guard.sh 2 "git branch hotfix"          "bare name without pre
 check branch-name-guard.sh 0 "git checkout -b release/v1.2.0" "semver release branch (allowed)"
 check branch-name-guard.sh 2 "git checkout -b release/foo" "non-semver release branch (blocked)"
 check branch-name-guard.sh 0 "git branch"                 "branch listing (no name, allowed)"
+check branch-name-guard.sh 2 "git -c k=v checkout -b main" "reserved name behind -c global option (can't bypass)"
+check branch-name-guard.sh 2 "git --git-dir .git switch -c staging" "reserved name behind --git-dir option (can't bypass)"
 
 # commit-guard (2 = on the protected branch; pass-throughs = 0)
 check commit-guard.sh 2 "git commit -m \"feat: x\""       "commit on protected (blocked)"
@@ -77,6 +81,9 @@ check pr-validate.sh 2 "gh pr create --base nope --title \"feat: x [AB-1]\"" "PR
 check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\""         "PR without bracketed [ID] (blocked)"
 check pr-validate.sh 2 "gh --repo o/r pr create --base nope --title \"x [AB-1]\"" "gh global flag can't bypass base check (blocked)"
 check pr-validate.sh 2 "gh -Ro/r pr create --base nope --title \"x [AB-1]\"" "glued -Ro/r short flag can't bypass base check (blocked)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x [AB-1] [AB-2]\"" "two IDs in the title (blocked — exactly one required)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"relates [AB-1]\"" "ID only in --body, not title (blocked)"
+check pr-validate.sh 0 "gh pr create --base $PB -t \"feat: x [AB-1]\""       "short -t title form with one [ID] (allowed)"
 check pr-validate.sh 0 "gh pr view 9"                                        "gh pr view is not create (allowed)"
 
 # pr-merge-guard (the agent never merges; 2 = blocked)

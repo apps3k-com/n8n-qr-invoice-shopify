@@ -7,6 +7,10 @@
 set -euo pipefail
 
 CMD=$(cat | jq -r '.tool_input.command // ""')
+# Normalize away git GLOBAL options between `git` and the subcommand (e.g.
+# `git -c k=v checkout -b main`, `git --git-dir .git switch -c x`) so they can't
+# leave BRANCH empty and bypass the check. Same value/flag set as push/merge-guard.
+CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*(checkout|switch|branch)/\1git \6/')
 
 # Extract the new branch name from checkout -b/-B or switch -c/-C …
 BRANCH=$(printf '%s' "$CMD" | grep -oE 'git[[:space:]]+(checkout[[:space:]]+-[bB]|switch[[:space:]]+-[cC])[[:space:]]+[^[:space:]]+' \

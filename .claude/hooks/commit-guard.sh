@@ -22,7 +22,9 @@ fi
 
 # Message checks apply only to an inline -m message; -F/--file/--amend and
 # templated messages can't be parsed here and are passed through.
-case "$CMD" in *"--amend"*|*"-F "*|*"--file"*) exit 0 ;; esac
+case "$CMD" in
+  *"--amend"*|*"-F "*|*"--file "*|*"--file="*|*"--file") exit 0 ;;
+esac
 # Extract the message from any -m / --message form, including combined short
 # flags (-m "x", -m'x', -m"x", -mx, -am "x", -sam 'x', --message "x",
 # --message=x). \x27 = single quote, to keep this perl single-quoted.

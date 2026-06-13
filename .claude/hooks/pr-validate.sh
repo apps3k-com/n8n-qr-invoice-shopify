@@ -28,19 +28,24 @@ if [ -n "$BASE" ] && ! printf ',%s,' "$(printf '%s' "$ALLOWED" | tr -d '[:space:
   exit 2
 fi
 
-# plane.so GitHub sync: the PR must reference EXACTLY ONE main work item as
-# [PREFIX-123] (ID in square brackets, normally in the title) — plane's GitHub
-# integration syncs the PR status to that work item. Commits keep (PREFIX-123).
-# Prefix from WORKFLOW_TASK_ID_PREFIX when set; otherwise any [ABC-123] counts.
+# plane.so GitHub sync: the PR TITLE must reference EXACTLY ONE main work item as
+# [PREFIX-123] — plane's GitHub integration matches the bracketed ID in the title
+# and syncs the PR status to that work item. Secondary items are mentioned WITHOUT
+# brackets, so we count only IDs in the title (a bracketed ID in --body must not
+# satisfy this). Commits keep (PREFIX-123). Prefix from WORKFLOW_TASK_ID_PREFIX
+# when set; otherwise any [ABC-123] counts.
 PREFIX="${WORKFLOW_TASK_ID_PREFIX:-[A-Z][A-Z0-9]+}"
-IDS=$(printf '%s' "$CMD" | grep -oE "\[${PREFIX}-[0-9]+\]" | sort -u || true)
+# Extract the --title value: --title "x" / --title=x / -t "x" / -t x (first match).
+TITLE=$(printf '%s' "$CMD" \
+  | grep -oE "(--title[[:space:]]+|--title=|-t[[:space:]]+|-t=)(\"[^\"]*\"|'[^']*'|[^[:space:]]+)" \
+  | head -1 \
+  | sed -E "s/^(--title[[:space:]]+|--title=|-t[[:space:]]+|-t=)//; s/^[\"']//; s/[\"']$//" || true)
+IDS=$(printf '%s' "$TITLE" | grep -oE "\[${PREFIX}-[0-9]+\]" | sort -u || true)
 N=$(printf '%s' "$IDS" | grep -c . || true)
-if [ "$N" -eq 0 ]; then
-  echo "BLOCKED: the PR must reference its main plane.so work item as [${WORKFLOW_TASK_ID_PREFIX:-ABC}-123] (in square brackets, in the title) — this links the PR for status sync." >&2
+if [ "$N" -ne 1 ]; then
+  echo "BLOCKED: the PR TITLE must reference EXACTLY ONE main plane.so work item as [${WORKFLOW_TASK_ID_PREFIX:-ABC}-123] (found $N in the title) — this links the PR for status sync. Mention any secondary items WITHOUT brackets." >&2
   exit 2
 fi
-EXTRA=""
-[ "$N" -gt 1 ] && EXTRA=" NOTE: $N bracketed work-item IDs found ($(printf '%s' "$IDS" | tr '\n' ' ' | sed 's/ $//')) — exactly ONE main item should be bracketed; mention secondary items without brackets."
 
-jq -n --arg extra "$EXTRA" '{"systemMessage":("PR checklist: self-review done (fix issues from earlier steps too); main work item as [ID] in the title (plane sync) — done; Conventional Commit title; local gates green (typecheck, tests, docstring-coverage). After opening, see the CodeRabbit review through to resolution before handing back." + $extra)}'
+jq -n '{"systemMessage":"PR checklist: self-review done (fix issues from earlier steps too); exactly one main work item as [ID] in the title (plane sync) — done; Conventional Commit title; local gates green (typecheck, tests, docstring-coverage). After opening, see the CodeRabbit review through to resolution before handing back."}'
 exit 0
