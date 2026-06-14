@@ -86,13 +86,17 @@ check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"rel
 check pr-validate.sh 0 "gh pr create --base $PB -t \"feat: x [AB-1]\""       "short -t title form with one [ID] (allowed)"
 check pr-validate.sh 2 "gh pr view 1 && gh -Ro/r pr create --base nope --title \"x [AB-1]\"" "chained: the 2nd 'gh pr create' segment is still checked (global normalize)"
 check pr-validate.sh 0 "gh pr view 9"                                        "gh pr view is not create (allowed)"
+check pr-validate.sh 2 "gh pr -R o/r create --base nope --title \"x [AB-1]\"" "flag AFTER pr (gh pr -R o/r create) still base-checked (blocked)"
 
 # pr-merge-guard (the agent never merges; 2 = blocked)
 check pr-merge-guard.sh 2 "gh pr merge 9 --squash"        "gh pr merge (blocked)"
 check pr-merge-guard.sh 2 "gh --repo o/r pr merge 9"      "gh global flag can't bypass merge guard (blocked)"
 check pr-merge-guard.sh 2 "gh -Ro/r pr merge 9"          "glued -Ro/r short flag can't bypass merge guard (blocked)"
 check pr-merge-guard.sh 2 "gh pr view 1 && gh -Ro/r pr merge 9" "chained: the 2nd 'gh pr merge' segment is still caught (global normalize)"
+check pr-merge-guard.sh 2 "gh pr -R o/r merge 9"         "flag AFTER pr (gh pr -R o/r merge) can't bypass (blocked)"
+check pr-merge-guard.sh 2 "gh pr -Ro/r merge 9"          "glued flag AFTER pr (gh pr -Ro/r merge) can't bypass (blocked)"
 check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"x [AB-1]\"" "gh pr create is not merge (allowed)"
+check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"fix merge bug [AB-1]\"" "'merge' inside a create title is NOT a merge (no false block)"
 check pr-merge-guard.sh 0 "gh pr view 9"                  "gh pr view is not merge (allowed)"
 
 if [ "$fail" -eq 0 ]; then echo "ALL GUARD TESTS PASSED"; else echo "SOME GUARD TESTS FAILED"; fi
