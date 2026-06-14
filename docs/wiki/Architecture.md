@@ -294,21 +294,9 @@ When user moves issue to "Done":
 
 ### Current Issues
 
-| Issue | Title | Step |
-|-------|-------|------|
-| TUF-105 | Original-Rechnung von Shopify abrufen | 1a |
-| TUF-106 | POS-Order ohne Billing Address | 1b |
-| TUF-107 | Invoice/Non-Invoice Order Routing | 2a |
-| TUF-108 | QRR-Referenz Berechnung | 2b |
-| TUF-109 | Debtor-Daten Mapping | 2c |
-| TUF-110 | QR-Zahlteil API Generation | 2d |
-| TUF-111 | PDF Merge | 3 |
-| TUF-112 | Shopify Metafields Upload | 3.1 |
-| TUF-113 | Google Drive Upload | 3.2 |
-| TUF-114 | Email-Versand | 3.3 |
-| TUF-115 | POS Slack Notification | 3.4 |
-| TUF-116 | Data Table Logging | 3.5 |
-| TUF-117 | Order Update Workflow | 4 |
+Live issue tracking is in **plane.so** (the single source of truth) — not in this
+doc. The former static snapshot of Linear `TUF-105 … TUF-117` was removed because
+it goes stale; refer to the plane.so project for current status.
 
 ---
 
