@@ -17,6 +17,10 @@ CMD=$(cat | jq -r '.tool_input.command // ""')
 # so a literal `gh pr` inside an argument is not rewritten. Global (`g`) so EVERY
 # `gh ... pr` segment in a chained command is canonicalized, not just the first.
 CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)gh[[:space:]]+(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)*pr/\1gh pr/g')
+# gh also accepts -R/--repo AFTER the `pr` subcommand (`gh pr -R o/r create`); strip
+# those too so they can't sit between `pr` and `create`. Targeted to -R/--repo (the
+# value-taking flag) — NOT arbitrary text.
+CMD=$(printf '%s' "$CMD" | sed -E 's/(gh[[:space:]]+pr[[:space:]]+)(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)+/\1/g')
 printf '%s' "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+create' || exit 0
 
 # Catch every base form: --base <x>, --base=<x>, -B <x>, -B=<x>.
