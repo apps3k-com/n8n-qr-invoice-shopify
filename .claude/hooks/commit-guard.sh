@@ -21,10 +21,13 @@ if [ "$BRANCH" = "$PB" ]; then
 fi
 
 # Message checks apply only to an inline -m message; -F/--file/--amend and
-# templated messages can't be parsed here and are passed through.
-case "$CMD" in
-  *"--amend"*|*"-F "*|*"--file "*|*"--file="*|*"--file") exit 0 ;;
-esac
+# templated messages can't be parsed here and are passed through. Detect these
+# flags ONLY in the part BEFORE the first -m/--message, so option-like text inside
+# the message (e.g. `git commit -m "fix --file handling"`) can't force a bypass.
+PRE_MSG=$(printf '%s' "$CMD" | sed -E 's/(^|[[:space:]])(--message|-m)([[:space:]]|=).*//')
+if printf '%s' "$PRE_MSG" | grep -qE '(^|[[:space:]])(--amend|(-F|--file)(=|[[:space:]]|$))'; then
+  exit 0
+fi
 # Extract the message from any -m / --message form, including combined short
 # flags (-m "x", -m'x', -m"x", -mx, -am "x", -sam 'x', --message "x",
 # --message=x). \x27 = single quote, to keep this perl single-quoted.

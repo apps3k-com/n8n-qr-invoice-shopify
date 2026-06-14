@@ -14,8 +14,9 @@ CMD=$(cat | jq -r '.tool_input.command // ""')
 # create`, `gh --repo=owner/repo pr create`, glued short form `gh -Rowner/repo pr
 # create`) so they can't bypass detection. `-R` allows a glued/spaced/`=` value;
 # `--repo` requires a space or `=`. Anchored at command start / a shell separator
-# so a literal `gh pr` inside an argument is not rewritten.
-CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)gh[[:space:]]+(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)*pr/\1gh pr/')
+# so a literal `gh pr` inside an argument is not rewritten. Global (`g`) so EVERY
+# `gh ... pr` segment in a chained command is canonicalized, not just the first.
+CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)gh[[:space:]]+(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)*pr/\1gh pr/g')
 printf '%s' "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+create' || exit 0
 
 # Catch every base form: --base <x>, --base=<x>, -B <x>, -B=<x>.
