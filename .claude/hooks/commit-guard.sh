@@ -13,9 +13,11 @@ PB="${PROTECTED_BRANCH:-main}"
 
 CMD=$(cat | jq -r '.tool_input.command // ""')
 # Normalize away git GLOBAL options between `git` and `commit` (e.g.
-# `git -c user.email=x commit`, `git --git-dir .git commit`) so they can't bypass
-# the protected-branch + message checks. Same value/flag set as the other guards.
-CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*commit/\1git commit/')
+# `git -c user.email=x commit`, `git -cuser.email=x commit` glued, `git -C/path
+# commit`, `git --git-dir .git commit`) so they can't bypass the protected-branch
+# + message checks. The value delimiter is OPTIONAL so glued short forms (`-cX`,
+# `-C/path`) are normalized too. Same value/flag set as the other guards.
+CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)?[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*commit/\1git commit/')
 printf '%s' "$CMD" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' || exit 0
 
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")

@@ -76,6 +76,9 @@ check commit-guard.sh 2 "git commit --amend --no-edit"    "amend on protected st
 check commit-guard.sh 0 "git status"                      "not a commit (allowed)"
 check commit-guard.sh 2 "git -c user.email=x commit -m \"feat: y\"" "commit behind -c global option can't bypass the protected check (P1)"
 check commit-guard.sh 2 "git --git-dir .git commit -m \"feat: z\""  "commit behind --git-dir option can't bypass the protected check"
+check commit-guard.sh 2 "git -cuser.email=x commit -m \"feat: g\"" "commit behind GLUED -c (no delimiter) can't bypass (cubic P0)"
+check branch-name-guard.sh 2 "git -cfoo=bar checkout -b main" "reserved name behind glued -c can't bypass"
+check push-guard.sh 2 "git -cfoo=bar push origin $PB"      "push to protected behind glued -c can't bypass"
 
 # pr-validate (base must be allowed; a bracketed work-item ID is required)
 check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x [AB-1]\""  "PR to allowed base with [ID] (allowed)"
