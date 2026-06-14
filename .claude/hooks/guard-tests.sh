@@ -74,6 +74,8 @@ check branch-name-guard.sh 2 "git --git-dir .git switch -c staging" "reserved na
 check commit-guard.sh 2 "git commit -m \"feat: x\""       "commit on protected (blocked)"
 check commit-guard.sh 2 "git commit --amend --no-edit"    "amend on protected still blocked (protected check precedes amend pass-through)"
 check commit-guard.sh 0 "git status"                      "not a commit (allowed)"
+check commit-guard.sh 2 "git -c user.email=x commit -m \"feat: y\"" "commit behind -c global option can't bypass the protected check (P1)"
+check commit-guard.sh 2 "git --git-dir .git commit -m \"feat: z\""  "commit behind --git-dir option can't bypass the protected check"
 
 # pr-validate (base must be allowed; a bracketed work-item ID is required)
 check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x [AB-1]\""  "PR to allowed base with [ID] (allowed)"
