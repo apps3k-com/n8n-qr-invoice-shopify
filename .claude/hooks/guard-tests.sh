@@ -56,6 +56,7 @@ check merge-guard.sh 0 "git --help merge"                 "git --help merge is i
 check merge-guard.sh 2 "(git -c k=v merge feature)"       "merge protected inside a subshell"
 check merge-guard.sh 2 " git merge feature"              "merge protected with leading whitespace"
 check merge-guard.sh 0 "git merge --abort"               "merge --abort (allowed)"
+check merge-guard.sh 2 "git merge --abort && git -c k=v merge feature/x" "abort then a real merge on protected still blocks (no --abort bypass)"
 check merge-guard.sh 0 "git merge-base a b"              "merge-base is not a merge (allowed)"
 
 # branch-name-guard (2 = rejected name, 0 = accepted)
@@ -84,8 +85,14 @@ check push-guard.sh 2 "git -cfoo=bar push origin $PB"      "push to protected be
 check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" --body \"Closes #1\""  "body with closing keyword (allowed)"
 check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"no link here\"" "inline body without an issue link (blocked)"
 check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" --body \"Fixes #12 and refs #3\"" "Fixes keyword variant (allowed)"
-check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\""                       "no inline body to inspect — reminder, not blocked (allowed)"
-check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" -F body.md"            "body via file can't be inspected — reminder (allowed)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\""                       "no body at all — fail-closed (blocked)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" -F /nonexistent-xyz.md" "body-file missing/unreadable — fail-closed (blocked)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"\""           "empty inline body — fail-closed (blocked)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"no link --body-file x\"" "the --body-file substring inside a body can't bypass (blocked)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"prefixes #1\"" "partial word 'prefixes #1' != 'fixes #1' (blocked)"
+crbf="$(mktemp)"; printf 'Body.\nCloses #7\n' > "$crbf"
+check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" -F $crbf"               "body-file on disk with a closing keyword (allowed)"
+rm -f "$crbf"
 check pr-validate.sh 2 "gh pr create --base nope --title \"feat: x\" --body \"Closes #1\"" "disallowed base blocked even with a valid body (blocked)"
 check pr-validate.sh 2 "gh --repo o/r pr create --base nope --title \"x\" --body \"Closes #1\"" "gh global flag can't bypass base check (blocked)"
 check pr-validate.sh 2 "gh -Ro/r pr create --base nope --title \"x\" --body \"Closes #1\"" "glued -Ro/r short flag can't bypass base check (blocked)"
@@ -118,6 +125,20 @@ check pr-merge-guard.sh 2 "gh pr -R=o/r merge 9"         "= form AFTER pr (gh pr
 check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"x [AB-1]\"" "gh pr create is not merge (allowed)"
 check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"fix merge bug [AB-1]\"" "'merge' inside a create title is NOT a merge (no false block)"
 check pr-merge-guard.sh 0 "gh pr view 9"                  "gh pr view is not merge (allowed)"
+
+# pr-coderabbit-loop (PostToolUse): mandatory CodeRabbit-loop reminder after a PR is opened
+if printf '{"tool_input":{"command":"gh pr create --base main"}}' | bash "$DIR/pr-coderabbit-loop.sh" | grep -q systemMessage; then
+  echo "  ok   [pr-coderabbit-loop.sh] emits the CodeRabbit-loop reminder on gh pr create"
+else echo "  FAIL [pr-coderabbit-loop.sh] no reminder on gh pr create"; fail=1; fi
+if [ -z "$(printf '{"tool_input":{"command":"git status"}}' | bash "$DIR/pr-coderabbit-loop.sh")" ]; then
+  echo "  ok   [pr-coderabbit-loop.sh] silent on a non-PR command"
+else echo "  FAIL [pr-coderabbit-loop.sh] should be silent on a non-PR command"; fail=1; fi
+
+# coderabbit-loop-guard (Stop): the safeguards must short-circuit to exit 0 (never trap)
+if printf '{}' | WORKFLOW_SKIP_CR_LOOP=1 bash "$DIR/coderabbit-loop-guard.sh" >/dev/null 2>&1; then
+  echo "  ok   [coderabbit-loop-guard.sh] WORKFLOW_SKIP_CR_LOOP=1 allows stop"; else echo "  FAIL [coderabbit-loop-guard.sh] skip escape"; fail=1; fi
+if printf '{"stop_hook_active":true}' | bash "$DIR/coderabbit-loop-guard.sh" >/dev/null 2>&1; then
+  echo "  ok   [coderabbit-loop-guard.sh] stop_hook_active allows stop (no infinite loop)"; else echo "  FAIL [coderabbit-loop-guard.sh] stop_hook_active guard"; fail=1; fi
 
 if [ "$fail" -eq 0 ]; then echo "ALL GUARD TESTS PASSED"; else echo "SOME GUARD TESTS FAILED"; fi
 exit "$fail"
