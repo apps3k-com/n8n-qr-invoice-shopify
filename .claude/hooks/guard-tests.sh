@@ -58,6 +58,7 @@ check merge-guard.sh 2 " git merge feature"              "merge protected with l
 check merge-guard.sh 0 "git merge --abort"               "merge --abort (allowed)"
 check merge-guard.sh 2 "git merge --abort && git -c k=v merge feature/x" "abort then a real merge on protected still blocks (no --abort bypass)"
 check merge-guard.sh 0 "git merge-base a b"              "merge-base is not a merge (allowed)"
+check merge-guard.sh 0 "git commit -m \"document how git merge works\"" "quoted mention of 'git merge' is not a merge (no false block)"
 
 # branch-name-guard (2 = rejected name, 0 = accepted)
 check branch-name-guard.sh 0 "git checkout -b feature/x"  "prefixed branch (allowed)"
@@ -106,6 +107,7 @@ check pr-validate.sh 2 "gh pr view 1 && gh -Ro/r pr create --base nope --title \
 check pr-validate.sh 2 "gh pr new --base nope --title \"x\" --body \"Closes #1\"" "gh pr new disallowed base (blocked)"
 check pr-validate.sh 0 "gh pr new --base $PB --title \"x\" --body \"Closes #1\"" "gh pr new allowed base + Closes (allowed)"
 check pr-validate.sh 2 "gh pr new --base $PB --title \"x\" --body \"no ref\"" "gh pr new inline body without issue link (blocked)"
+check pr-validate.sh 0 "gh pr comment 9 --body \"see the gh pr create docs\"" "quoted mention of 'gh pr create' is not a create (no false block)"
 
 # pr-validate multi-line --body (perl slurp; a line-based grep would only see line 1)
 ml_ok=$'gh pr create --base '"$PB"$' --title "x" --body "intro line\nCloses #5"'
@@ -125,6 +127,7 @@ check pr-merge-guard.sh 2 "gh pr -R=o/r merge 9"         "= form AFTER pr (gh pr
 check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"x [AB-1]\"" "gh pr create is not merge (allowed)"
 check pr-merge-guard.sh 0 "gh pr create --base $PB --title \"fix merge bug [AB-1]\"" "'merge' inside a create title is NOT a merge (no false block)"
 check pr-merge-guard.sh 0 "gh pr view 9"                  "gh pr view is not merge (allowed)"
+check pr-merge-guard.sh 0 "gh pr comment 9 --body \"how to gh pr merge\"" "quoted mention of 'gh pr merge' is not a merge (no false block)"
 
 # pr-coderabbit-loop (PostToolUse): mandatory CodeRabbit-loop reminder after a PR is opened
 if printf '{"tool_input":{"command":"gh pr create --base main"}}' | bash "$DIR/pr-coderabbit-loop.sh" | grep -q systemMessage; then

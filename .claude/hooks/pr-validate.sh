@@ -21,8 +21,12 @@ CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)gh[[:sp
 # those too so they can't sit between `pr` and `create`. Targeted to -R/--repo (the
 # value-taking flag) — NOT arbitrary text.
 CMD=$(printf '%s' "$CMD" | sed -E 's/(gh[[:space:]]+pr[[:space:]]+)(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)+/\1/g')
+# Detect on a quote-stripped copy so a command that merely MENTIONS the phrase in a
+# quoted argument (e.g. `gh pr comment 9 --body "... gh pr new ..."`) is not mistaken
+# for a real create/new invocation. The original CMD is kept for base/body extraction.
 # `gh pr new` is a hidden built-in alias for `gh pr create` — match both so it can't bypass.
-printf '%s' "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0
+DETECT=$(printf '%s' "$CMD" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
+printf '%s' "$DETECT" | grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|new)' || exit 0
 
 # Catch every base form: --base <x>, --base=<x>, -B <x>, -B=<x>.
 BASE=$(printf '%s' "$CMD" \

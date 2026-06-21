@@ -14,11 +14,14 @@ CMD=$(cat | jq -r '.tool_input.command // ""')
 # Global (`g`) so EVERY `git ... merge` segment in a chained command is canonicalized,
 # not just the first — otherwise `git merge --abort && git -c k=v merge x` would slip by.
 CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)?[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*merge/\1git merge/g')
-printf '%s' "$CMD" | grep -qE 'git[[:space:]]+merge([[:space:]]|$)' || exit 0   # not merge-base/merge-tree
+# Detect/count on a quote-stripped copy so a quoted argument that merely MENTIONS
+# "git merge" (a commit message, PR body, echo, …) is not misread as a real merge.
+DETECT=$(printf '%s' "$CMD" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
+printf '%s' "$DETECT" | grep -qE 'git[[:space:]]+merge([[:space:]]|$)' || exit 0   # not merge-base/merge-tree
 # `git merge --abort` (fixing mistakes) is fine — but ONLY when EVERY merge invocation
 # is an --abort, so `git merge --abort && git merge feature/x` still blocks on $PB.
-merges=$(printf '%s' "$CMD" | grep -oE 'git[[:space:]]+merge' | grep -c . || true)
-aborts=$(printf '%s' "$CMD" | grep -oE 'git[[:space:]]+merge[[:space:]]+--abort' | grep -c . || true)
+merges=$(printf '%s' "$DETECT" | grep -oE 'git[[:space:]]+merge' | grep -c . || true)
+aborts=$(printf '%s' "$DETECT" | grep -oE 'git[[:space:]]+merge[[:space:]]+--abort' | grep -c . || true)
 [ "${merges:-0}" -gt 0 ] && [ "${merges:-0}" -eq "${aborts:-0}" ] && exit 0
 
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
