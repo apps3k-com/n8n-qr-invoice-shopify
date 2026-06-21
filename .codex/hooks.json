@@ -21,7 +21,7 @@
       { "hooks": [ { "type": "command", "command": "PROTECTED_BRANCH=main bash \"$(git rev-parse --show-toplevel)/.claude/hooks/session-init.sh\"", "timeout": 5 } ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/self-review.sh\"", "timeout": 5 }, { "type": "command", "command": "PROTECTED_BRANCH=main bash \"$(git rev-parse --show-toplevel)/.claude/hooks/coderabbit-loop-guard.sh\"", "timeout": 20 } ] }
+      { "hooks": [ { "type": "command", "command": "PROTECTED_BRANCH=main bash \"$(git rev-parse --show-toplevel)/.claude/hooks/coderabbit-loop-guard.sh\"", "timeout": 20 }, { "type": "command", "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/self-review.sh\"", "timeout": 5 } ] }
     ]
   }
 }

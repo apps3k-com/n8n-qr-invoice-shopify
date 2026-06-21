@@ -130,6 +130,9 @@ check pr-merge-guard.sh 0 "gh pr view 9"                  "gh pr view is not mer
 if printf '{"tool_input":{"command":"gh pr create --base main"}}' | bash "$DIR/pr-coderabbit-loop.sh" | grep -q systemMessage; then
   echo "  ok   [pr-coderabbit-loop.sh] emits the CodeRabbit-loop reminder on gh pr create"
 else echo "  FAIL [pr-coderabbit-loop.sh] no reminder on gh pr create"; fail=1; fi
+if printf '{"tool_input":{"command":"gh pr new --base main"}}' | bash "$DIR/pr-coderabbit-loop.sh" | grep -q systemMessage; then
+  echo "  ok   [pr-coderabbit-loop.sh] emits the CodeRabbit-loop reminder on gh pr new (alias)"
+else echo "  FAIL [pr-coderabbit-loop.sh] no reminder on gh pr new"; fail=1; fi
 if [ -z "$(printf '{"tool_input":{"command":"git status"}}' | bash "$DIR/pr-coderabbit-loop.sh")" ]; then
   echo "  ok   [pr-coderabbit-loop.sh] silent on a non-PR command"
 else echo "  FAIL [pr-coderabbit-loop.sh] should be silent on a non-PR command"; fail=1; fi

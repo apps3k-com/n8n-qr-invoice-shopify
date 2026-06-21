@@ -29,8 +29,11 @@ PR=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq 
 URL="https://github.com/$REPO/pull/$PR"
 
 # Has CodeRabbit posted a review or any comment yet?
-posted=$( { gh api "repos/$REPO/issues/$PR/comments" --jq '[.[]|select(.user.login=="coderabbitai[bot]")]|length' 2>/dev/null;
-            gh api "repos/$REPO/pulls/$PR/reviews"  --jq '[.[]|select(.user.login=="coderabbitai[bot]")]|length' 2>/dev/null; } \
+# --paginate so a PR with >100 comments/reviews can't hide CodeRabbit's activity on a
+# later page (a false "not reviewed yet" would wrongly trap the session). With --paginate
+# the --jq filter runs per page, so awk sums the per-page counts across both calls.
+posted=$( { gh api --paginate "repos/$REPO/issues/$PR/comments" --jq '[.[]|select(.user.login=="coderabbitai[bot]")]|length' 2>/dev/null;
+            gh api --paginate "repos/$REPO/pulls/$PR/reviews"  --jq '[.[]|select(.user.login=="coderabbitai[bot]")]|length' 2>/dev/null; } \
           | awk '{s+=$1} END{print s+0}')
 if [ "${posted:-0}" -eq 0 ]; then
   # Fail-open: only block if the API is genuinely reachable — a transient API
