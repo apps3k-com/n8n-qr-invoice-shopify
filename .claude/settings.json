@@ -64,8 +64,25 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/coderabbit-loop-guard.sh\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/self-review.sh\"",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/pr-coderabbit-loop.sh\"",
+            "timeout": 10
           }
         ]
       }
