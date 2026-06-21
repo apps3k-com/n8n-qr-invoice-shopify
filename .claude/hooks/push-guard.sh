@@ -11,7 +11,7 @@ CMD=$(cat | jq -r '.tool_input.command // ""')
 # stripped: value-taking ones consume their separate-or-`=` arg; `--help`/`-h`/`--version`
 # are intentionally excluded. Anchored at command start / a shell separator so a literal
 # `git push` inside an argument is not rewritten.
-CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*push/\1git push/')
+CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)?[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*push/\1git push/')
 printf '%s' "$CMD" | grep -qE 'git[[:space:]]+push' || exit 0
 
 # Force pushes are never allowed. Match: --force, --force-with-lease[=<lease>], and any

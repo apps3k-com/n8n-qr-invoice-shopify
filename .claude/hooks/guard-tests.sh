@@ -9,9 +9,9 @@ set -u
 DIR="$(cd "$(dirname "$0")" && pwd)"
 PB="$(git branch --show-current 2>/dev/null)"; PB="${PB:-main}"   # show-current is empty (not an error) in detached HEAD
 export PROTECTED_BRANCH="$PB"
-# Isolate from any ambient workflow env so results are deterministic: PR base
-# then defaults to PB, and the work-item prefix accepts any [ABC-123].
-unset WORKFLOW_PR_BASES WORKFLOW_TASK_ID_PREFIX 2>/dev/null || true
+# Isolate from any ambient workflow env so results are deterministic: PR base then
+# defaults to PB, and the issue-ref check uses its default (required).
+unset WORKFLOW_PR_BASES WORKFLOW_REQUIRE_ISSUE_REF 2>/dev/null || true
 fail=0
 
 # check <hook> <expected-exit> <command> <label>
@@ -76,21 +76,35 @@ check commit-guard.sh 2 "git commit --amend --no-edit"    "amend on protected st
 check commit-guard.sh 0 "git status"                      "not a commit (allowed)"
 check commit-guard.sh 2 "git -c user.email=x commit -m \"feat: y\"" "commit behind -c global option can't bypass the protected check (P1)"
 check commit-guard.sh 2 "git --git-dir .git commit -m \"feat: z\""  "commit behind --git-dir option can't bypass the protected check"
+check commit-guard.sh 2 "git -cuser.email=x commit -m \"feat: g\"" "commit behind GLUED -c (no delimiter) can't bypass (cubic P0)"
+check branch-name-guard.sh 2 "git -cfoo=bar checkout -b main" "reserved name behind glued -c can't bypass"
+check push-guard.sh 2 "git -cfoo=bar push origin $PB"      "push to protected behind glued -c can't bypass"
 
-# pr-validate (base must be allowed; a bracketed work-item ID is required)
-check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x [AB-1]\""  "PR to allowed base with [ID] (allowed)"
-check pr-validate.sh 2 "gh pr create --base nope --title \"feat: x [AB-1]\"" "PR to disallowed base (blocked)"
-check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\""         "PR without bracketed [ID] (blocked)"
-check pr-validate.sh 2 "gh --repo o/r pr create --base nope --title \"x [AB-1]\"" "gh global flag can't bypass base check (blocked)"
-check pr-validate.sh 2 "gh -Ro/r pr create --base nope --title \"x [AB-1]\"" "glued -Ro/r short flag can't bypass base check (blocked)"
-check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x [AB-1] [AB-2]\"" "two IDs in the title (blocked — exactly one required)"
-check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"relates [AB-1]\"" "ID only in --body, not title (blocked)"
-check pr-validate.sh 0 "gh pr create --base $PB -t \"feat: x [AB-1]\""       "short -t title form with one [ID] (allowed)"
-check pr-validate.sh 2 "gh pr view 1 && gh -Ro/r pr create --base nope --title \"x [AB-1]\"" "chained: the 2nd 'gh pr create' segment is still checked (global normalize)"
+# pr-validate (base must be allowed; PR body must link its issue via Closes #N)
+check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" --body \"Closes #1\""  "body with closing keyword (allowed)"
+check pr-validate.sh 2 "gh pr create --base $PB --title \"feat: x\" --body \"no link here\"" "inline body without an issue link (blocked)"
+check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" --body \"Fixes #12 and refs #3\"" "Fixes keyword variant (allowed)"
+check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\""                       "no inline body to inspect — reminder, not blocked (allowed)"
+check pr-validate.sh 0 "gh pr create --base $PB --title \"feat: x\" -F body.md"            "body via file can't be inspected — reminder (allowed)"
+check pr-validate.sh 2 "gh pr create --base nope --title \"feat: x\" --body \"Closes #1\"" "disallowed base blocked even with a valid body (blocked)"
+check pr-validate.sh 2 "gh --repo o/r pr create --base nope --title \"x\" --body \"Closes #1\"" "gh global flag can't bypass base check (blocked)"
+check pr-validate.sh 2 "gh -Ro/r pr create --base nope --title \"x\" --body \"Closes #1\"" "glued -Ro/r short flag can't bypass base check (blocked)"
 check pr-validate.sh 0 "gh pr view 9"                                        "gh pr view is not create (allowed)"
-check pr-validate.sh 2 "gh pr -R o/r create --base nope --title \"x [AB-1]\"" "flag AFTER pr (gh pr -R o/r create) still base-checked (blocked)"
-check pr-validate.sh 2 "gh --repo=o/r pr create --base nope --title \"x [AB-1]\"" "= form before pr (gh --repo=o/r pr create) (blocked)"
-check pr-validate.sh 2 "gh pr -R=o/r create --base nope --title \"x [AB-1]\"" "= form AFTER pr (gh pr -R=o/r create) (blocked)"
+check pr-validate.sh 2 "gh pr -R o/r create --base nope --title \"x\" --body \"Closes #1\"" "flag AFTER pr (gh pr -R o/r create) still base-checked (blocked)"
+check pr-validate.sh 2 "gh --repo=o/r pr create --base nope --title \"x\" --body \"Closes #1\"" "= form before pr (gh --repo=o/r pr create) (blocked)"
+check pr-validate.sh 2 "gh pr -R=o/r create --base nope --title \"x\" --body \"Closes #1\"" "= form AFTER pr (gh pr -R=o/r create) (blocked)"
+check pr-validate.sh 2 "gh pr view 1 && gh -Ro/r pr create --base nope --title \"x\" --body \"Closes #1\"" "chained: the 2nd 'gh pr create' segment is still checked (global normalize)"
+
+# pr-validate: `gh pr new` is a hidden alias for `gh pr create` — must be validated too
+check pr-validate.sh 2 "gh pr new --base nope --title \"x\" --body \"Closes #1\"" "gh pr new disallowed base (blocked)"
+check pr-validate.sh 0 "gh pr new --base $PB --title \"x\" --body \"Closes #1\"" "gh pr new allowed base + Closes (allowed)"
+check pr-validate.sh 2 "gh pr new --base $PB --title \"x\" --body \"no ref\"" "gh pr new inline body without issue link (blocked)"
+
+# pr-validate multi-line --body (perl slurp; a line-based grep would only see line 1)
+ml_ok=$'gh pr create --base '"$PB"$' --title "x" --body "intro line\nCloses #5"'
+check pr-validate.sh 0 "$ml_ok" "multi-line --body with Closes on a later line (allowed)"
+ml_bad=$'gh pr create --base '"$PB"$' --title "x" --body "intro line\nno issue reference"'
+check pr-validate.sh 2 "$ml_bad" "multi-line --body without an issue link (blocked)"
 
 # pr-merge-guard (the agent never merges; 2 = blocked)
 check pr-merge-guard.sh 2 "gh pr merge 9 --squash"        "gh pr merge (blocked)"

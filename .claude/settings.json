@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "PROTECTED_BRANCH": "main",
-    "WORKFLOW_TASK_ID_PREFIX": ""
+    "WORKFLOW_REQUIRE_ISSUE_REF": "true"
   },
   "hooks": {
     "PreToolUse": [
@@ -69,19 +69,6 @@
           }
         ]
       }
-    ]
-  },
-  "permissions": {
-    "allow": [
-      "Bash(git worktree add:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git -C :*::*)",
-      "Bash(docker mcp:*)",
-      "Bash(claude mcp add:*)",
-      "Bash(ls:*)",
-      "Skill(n8n-mcp-skills:n8n-node-configuration)"
     ]
   }
 }
