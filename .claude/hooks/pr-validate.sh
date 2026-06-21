@@ -34,16 +34,13 @@ if [ -n "$BASE" ] && ! printf ',%s,' "$(printf '%s' "$ALLOWED" | tr -d '[:space:
   exit 2
 fi
 
-# GitHub issue link: the PR BODY must close its work item with a keyword
-# (Closes/Fixes/Resolves #N) so GitHub auto-closes the issue on merge and the
-# Project's built-in workflow moves it to Done. An inline --body/-b (incl. multi-line)
-# is inspected; a body supplied via file/editor falls through to the reminder.
-# Toggle with WORKFLOW_REQUIRE_ISSUE_REF (default: true).
-if [ "${WORKFLOW_REQUIRE_ISSUE_REF:-true}" = "true" ] \
-   && ! printf '%s' "$CMD" | grep -qE '(--body-file|(^|[[:space:]])-F)([[:space:]]|=)'; then
-  # Extract the --body / -b value with perl in slurp mode (-0777) so a MULTI-LINE
-  # quoted body is captured whole (grep is line-based and would only see line 1).
-  # Forms: --body "x" / --body 'x' / --body=x / -b "x" / -b 'x' / -b=x / -bx.
+# GitHub issue link (fail-closed): the PR must close its work item with a keyword
+# (Closes/Fixes/Resolves #N) so GitHub closes the issue on merge and the Project's
+# built-in workflow moves it. Inline --body/-b is read directly; --body-file/-F is
+# read from disk. Toggle with WORKFLOW_REQUIRE_ISSUE_REF (default: true).
+if [ "${WORKFLOW_REQUIRE_ISSUE_REF:-true}" = "true" ]; then
+  # 1) Inline --body/-b VALUE (perl slurp → multi-line safe). Extracting the value
+  #    means a "--body-file" substring inside the body can't be mistaken for the flag.
   BODY=$(printf '%s' "$CMD" | perl -0777 -ne '
     if (/(?:^|\s)--body(?:=|\s+)"([^"]*)"/)          { print $1; exit }
     if (/(?:^|\s)--body(?:=|\s+)\x27([^\x27]*)\x27/) { print $1; exit }
@@ -51,8 +48,22 @@ if [ "${WORKFLOW_REQUIRE_ISSUE_REF:-true}" = "true" ] \
     if (/(?:^|\s)-b\s*"([^"]*)"/)                     { print $1; exit }
     if (/(?:^|\s)-b\s*\x27([^\x27]*)\x27/)            { print $1; exit }
     if (/(?:^|\s)-b=?(\S+)/)                          { print $1; exit }' 2>/dev/null || true)
-  if [ -n "$BODY" ] && ! printf '%s' "$BODY" | grep -qiE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+'; then
-    echo "BLOCKED: the PR body must link its issue with a closing keyword, e.g. 'Closes #123'. Mention secondary issues without a keyword." >&2
+  # 2) No inline body → read the --body-file/-F <path> from disk (a real flag only,
+  #    since no --body/-b was present above).
+  if [ -z "$BODY" ]; then
+    BF=$(printf '%s' "$CMD" | perl -0777 -ne '
+      if (/(?:^|\s)--body-file(?:=|\s+)"([^"]*)"/)          { print $1; exit }
+      if (/(?:^|\s)--body-file(?:=|\s+)\x27([^\x27]*)\x27/) { print $1; exit }
+      if (/(?:^|\s)--body-file(?:=|\s+)(\S+)/)              { print $1; exit }
+      if (/(?:^|\s)-F\s*"([^"]*)"/)                          { print $1; exit }
+      if (/(?:^|\s)-F\s*\x27([^\x27]*)\x27/)                 { print $1; exit }
+      if (/(?:^|\s)-F(?:=|\s+)(\S+)/)                        { print $1; exit }
+      if (/(?:^|\s)-F(\S+)/)                                 { print $1; exit }' 2>/dev/null || true)
+    [ -n "$BF" ] && [ "$BF" != "-" ] && [ -f "$BF" ] && BODY=$(cat "$BF" 2>/dev/null || true)
+  fi
+  # 3) Require a closing keyword with word boundaries so 'prefixes #1' != 'fixes #1'.
+  if ! printf '%s' "$BODY" | grep -qiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+'; then
+    echo "BLOCKED: link the issue with a closing keyword, e.g. 'Closes #123', in --body or --body-file. Set WORKFLOW_REQUIRE_ISSUE_REF=false to relax. Mention secondary issues without a keyword." >&2
     exit 2
   fi
 fi
