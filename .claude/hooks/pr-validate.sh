@@ -65,8 +65,9 @@ if [ "${WORKFLOW_REQUIRE_ISSUE_REF:-true}" = "true" ]; then
       if (/(?:^|\s)-F(\S+)/)                                 { print $1; exit }' 2>/dev/null || true)
     [ -n "$BF" ] && [ "$BF" != "-" ] && [ -f "$BF" ] && BODY=$(cat "$BF" 2>/dev/null || true)
   fi
-  # 3) Require a closing keyword with word boundaries so 'prefixes #1' != 'fixes #1'.
-  if ! printf '%s' "$BODY" | grep -qiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+'; then
+  # 3) Require a closing keyword with word boundaries on BOTH sides of #<n> so
+  #    'prefixes #1' != 'fixes #1' and 'Closes #12abc' (malformed) doesn't pass as '#12'.
+  if ! printf '%s' "$BODY" | grep -qiE '(^|[^[:alnum:]_])(close[sd]?|fix(e[sd])?|resolve[sd]?)[[:space:]]+#[0-9]+($|[^[:alnum:]_])'; then
     echo "BLOCKED: link the issue with a closing keyword, e.g. 'Closes #123', in --body or --body-file. Set WORKFLOW_REQUIRE_ISSUE_REF=false to relax. Mention secondary issues without a keyword." >&2
     exit 2
   fi

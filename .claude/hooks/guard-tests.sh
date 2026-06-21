@@ -108,6 +108,8 @@ check pr-validate.sh 2 "gh pr new --base nope --title \"x\" --body \"Closes #1\"
 check pr-validate.sh 0 "gh pr new --base $PB --title \"x\" --body \"Closes #1\"" "gh pr new allowed base + Closes (allowed)"
 check pr-validate.sh 2 "gh pr new --base $PB --title \"x\" --body \"no ref\"" "gh pr new inline body without issue link (blocked)"
 check pr-validate.sh 0 "gh pr comment 9 --body \"see the gh pr create docs\"" "quoted mention of 'gh pr create' is not a create (no false block)"
+check pr-validate.sh 2 "gh pr new --base $PB --title \"x\" --body \"Closes #12abc\"" "malformed issue ref '#12abc' rejected (trailing boundary)"
+check pr-validate.sh 0 "gh pr new --base $PB --title \"x\" --body \"Closes #12.\"" "valid issue ref then punctuation is accepted (allowed)"
 
 # pr-validate multi-line --body (perl slurp; a line-based grep would only see line 1)
 ml_ok=$'gh pr create --base '"$PB"$' --title "x" --body "intro line\nCloses #5"'
