@@ -13,7 +13,7 @@ the exported workflow JSON + docs. Repo: `apps3k-com/n8n-qr-invoice-shopify`.
 
 - **Language:** chat with the user = German. Code, comments, commits, PRs = English.
 - **Memory:** only **apps3k-memory** (`https://mcp-auth.apps3k.com/mcp/apps3k-memory`).
-  Search it before any work; if a memory references a plane.so work item, read it. Store
+  Search it before any work; if a memory references a GitHub issue, read it. Store
   after each step. If the MCP is down, tell the user, cache memories and add them
   later. Never store secrets (only 1Password paths).
 - **Diagnose before assuming:** inspect the n8n executions / logs and the
@@ -27,8 +27,8 @@ the exported workflow JSON + docs. Repo: `apps3k-com/n8n-qr-invoice-shopify`.
 - One long-lived branch: **`main`**. Short-lived `feature/<scope>` (or `fix/`,
   `chore/`, `docs/`) branch from `main`; the PR targets `main`.
   (Supersedes the older Linear `TUF-` / git-worktree flow described in the wiki.)
-- **Conventional Commits.** Every commit and PR description carries the plane.so
-  **work-item ID**; the PR title references the main work item as `[<ID>]`.
+- **Project management:** GitHub Projects. **Conventional Commits**; the PR links its
+  GitHub issue with a closing keyword (`Closes #N`); commit `(#N)` optional.
 - **Self-review before a PR:** fix every issue found, including ones from earlier steps.
 - **CodeRabbit** reviews PRs against `main`: implement valid feedback + confirm,
   reject invalid with reasoning, always mention `@coderabbitai`; push valid learnings

@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash, git commit) — protected-branch guard + Conventional Commits
-# + optional plane.so work-item ID. The Conventional-Commit and task-id checks
-# run on the extracted -m MESSAGE, never the whole command line. Editor commits
-# (no inline message) are blocked only when a task-id prefix is enforced.
+# PreToolUse(Bash, git commit) — protected-branch guard + Conventional Commits.
+# The Conventional-Commit check runs on the extracted -m MESSAGE, never the whole
+# command line. Editor commits (no inline message) can't be inspected here and pass
+# through. Work-item linking is enforced on the PR (Closes #N), not the commit.
 #
 # Provider-neutral: blocks via exit code 2 + stderr, honored by Claude Code and
 # Codex. Shared by .claude/settings.json and .codex/hooks.json. Configure via env:
-#   PROTECTED_BRANCH         (default: main)
-#   WORKFLOW_TASK_ID_PREFIX  (e.g. APP; unset/empty = skip the task-id check)
+#   PROTECTED_BRANCH  (default: main)
 set -euo pipefail
 PB="${PROTECTED_BRANCH:-main}"
 
 CMD=$(cat | jq -r '.tool_input.command // ""')
 # Normalize away git GLOBAL options between `git` and `commit` (e.g.
-# `git -c user.email=x commit`, `git --git-dir .git commit`) so they can't bypass
-# the protected-branch + message checks. Same value/flag set as the other guards.
-CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*commit/\1git commit/')
+# `git -c user.email=x commit`, `git -cuser.email=x commit` glued, `git -C/path
+# commit`, `git --git-dir .git commit`) so they can't bypass the protected-branch
+# + message checks. The value delimiter is OPTIONAL so glued short forms (`-cX`,
+# `-C/path`) are normalized too. Same value/flag set as the other guards.
+CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)git[[:space:]]+(((-c|-C|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix|--config-env|--attr-source)([[:space:]]+|=)?[^[:space:]]+|--bare|--no-pager|--paginate|--no-optional-locks|--literal-pathspecs|--no-literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs|--no-replace-objects|--no-advice|-p|-P)[[:space:]]+)*commit/\1git commit/')
 printf '%s' "$CMD" | grep -qE 'git[[:space:]]+commit([[:space:]]|$)' || exit 0
 
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
@@ -44,12 +45,7 @@ MSG=$(printf '%s' "$CMD" | perl -ne '
   }')
 if [ -z "$MSG" ]; then
   # No inline message → composed in an editor, which a PreToolUse hook cannot
-  # inspect. When a task-id prefix is enforced, require an explicit -m so the
-  # Conventional-Commit + task-id checks stay enforceable.
-  if [ -n "${WORKFLOW_TASK_ID_PREFIX:-}" ]; then
-    echo "BLOCKED: editor commits can't be validated. Use: git commit -m \"<type>(scope): subject (${WORKFLOW_TASK_ID_PREFIX}-NNN)\"" >&2
-    exit 2
-  fi
+  # inspect. Conventional Commits can't be checked here; pass through.
   exit 0
 fi
 
@@ -58,13 +54,6 @@ if ! printf '%s' "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|cho
   echo "BLOCKED: commit message must follow Conventional Commits: type(scope): description." >&2
   echo "  Types: feat fix docs style refactor perf test chore ci build revert" >&2
   echo "  Got: $MSG" >&2
-  exit 2
-fi
-
-# plane.so work-item ID (on the message, not the whole command).
-if [ -n "${WORKFLOW_TASK_ID_PREFIX:-}" ] \
-   && ! printf '%s' "$MSG" | grep -qE "${WORKFLOW_TASK_ID_PREFIX}-[0-9]+"; then
-  echo "BLOCKED: commit message must reference the plane.so work-item ID (${WORKFLOW_TASK_ID_PREFIX}-NNN)." >&2
   exit 2
 fi
 exit 0

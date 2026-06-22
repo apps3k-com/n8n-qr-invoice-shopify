@@ -3,7 +3,7 @@
 > _Technical reference, migrated from the former root `CLAUDE.md`. The **workflow /
 > process** sections below (issue flow, git-worktree flow, Linear `TUF-` IDs) are
 > **superseded** by the apps3k common workflow in `AGENTS.md` (main-only,
-> plane.so work-item IDs) — keep them only as historical n8n/build context. The
+> GitHub issues) — keep them only as historical n8n/build context. The
 > n8n architecture, data-flow and integration detail remain authoritative._
 
 ## 1. Project Overview
@@ -189,7 +189,7 @@ Order Processing Pipeline
 > Everything in this section (Linear project/issues, the *Issue Workflow* and the
 > *Git Worktree Workflow*, and the "NEVER work on main" rules below) reflects the
 > **old** Linear + dev/worktree process. The current workflow is **main-only**:
-> short-lived `feature/<scope>` off `main` → PR to `main`; tracking is **plane.so**
+> short-lived `feature/<scope>` off `main` → PR to `main`; tracking is **GitHub Projects**
 > (not Linear); the owner merges. The text below is kept only for historical
 > traceability of the original build.
 
@@ -294,9 +294,9 @@ When user moves issue to "Done":
 
 ### Current Issues
 
-Live issue tracking is in **plane.so** (the single source of truth) — not in this
+Live issue tracking is in **GitHub Projects** (the single source of truth) — not in this
 doc. The former static snapshot of Linear `TUF-105 … TUF-117` was removed because
-it goes stale; refer to the plane.so project for current status.
+it goes stale; refer to the GitHub Project for current status.
 
 ---
 

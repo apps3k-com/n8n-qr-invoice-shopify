@@ -20,6 +20,6 @@ this repo holds the exported workflow JSON (`QR-Rechnung.json`) + these docs.
 - **`docs/wiki/` in the repo is the source of truth** — this GitHub Wiki is a
   generated, read-only mirror. **Don't edit wiki pages directly**; edit
   `docs/wiki/**` via a pull request.
-- Don't duplicate doc bodies in the task tracker (plane.so) — that holds *tasks*.
+- Don't duplicate doc bodies in the task tracker (GitHub Projects) — that holds *tasks*.
 - **Agent-runtime instructions stay in the repo** (`CLAUDE.md` / `AGENTS.md`) and
   stay slim; they point here for depth.

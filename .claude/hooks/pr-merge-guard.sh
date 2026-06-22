@@ -15,7 +15,10 @@ CMD=$(printf '%s' "$CMD" | sed -E 's/(^[[:space:]]*|[;&|()]+[[:space:]]*)gh[[:sp
 # value-taking flag) — NOT arbitrary text — so `gh pr create --title "...merge..."`
 # is never misread as a merge.
 CMD=$(printf '%s' "$CMD" | sed -E 's/(gh[[:space:]]+pr[[:space:]]+)(((-R([[:space:]]+|=)?|--repo([[:space:]]+|=))[^[:space:]]+)[[:space:]]+)+/\1/g')
-printf '%s' "$CMD" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge' || exit 0
+# Detect on a quote-stripped copy so a command that merely MENTIONS the phrase in a
+# quoted argument (e.g. `gh pr comment 9 --body "... gh pr merge ..."`) is not misread.
+DETECT=$(printf '%s' "$CMD" | sed -E "s/\"[^\"]*\"//g; s/'[^']*'//g")
+printf '%s' "$DETECT" | grep -qE 'gh[[:space:]]+pr[[:space:]]+merge' || exit 0
 
 echo "BLOCKED: the agent never merges PRs. The project owner merges after the CodeRabbit loop." >&2
 exit 2
